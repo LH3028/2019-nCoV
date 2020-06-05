@@ -10,155 +10,9 @@
 
 
 
-## 一、模拟疫情病毒传播
 
 
-
-​         2019年12月以来，湖北省武汉市持续开展流感及相关疾病监测，发现多起病毒性肺炎病例，均诊断为病毒性肺炎/肺部感染 ，截至5月9日24时，据31个省（自治区、直辖市）和新疆生产建设兵团报告，现有确诊病例148例（其中重症病例13例），累计治愈出院病例78120例，累计死亡病例4633例，累计报告确诊病例82901例。这些都是多门可怕的数字啊，为什么病毒会传染的如此之快。我们今天用Python来模拟一下新冠状病毒的传播过程（在不做任何防护措施的情况下）
-
-
-
-#### 1、编写模型
-
-编写一些City()、Human()、Simulation
-
-```Python
-import random
-import numpy as np
-class City():
-    def __init__(self,fileName):
-        super().__init__()
-        with open(fileName,"r") as f:
-            self.w=int(f.readline())
-            self.h=int(f.readline())
-            self.cell=int(f.readline())
-            self.map=[ ['0' for col in range(0,self.w)] for row in range(0,self.h)]
-            for row in range(0,self.h):
-                line=f.readline()
-                for col in range(0,self.w):
-                    self.map[row][col]=line[col]
-    def canMove(self,x,y):
-        if x>=0 and x<self.w and y>=0 and y<self.h:
-            return self.map[y][x]=='0';
-        else:
-            return False;
-class Human():
-    def __init__(self,x,y,city,infected=False):
-        super().__init__()
-        self.x=x
-        self.y=y
-        self.city=city
-        self.infected=infected
-    def move(self):
-        r=random.randint(0,3)
-        if r==0:
-            if self.city.canMove(self.x+1,self.y):
-                self.x+=1
-        elif r==1:
-            if self.city.canMove(self.x-1,self.y):
-                self.x-=1
-        elif r==2:
-            if self.city.canMove(self.x,self.y+1):
-                self.y+=1
-        else:
-            if self.city.canMove(self.x,self.y-1):
-                self.y-=1
-class Simulation:
-    def __init__(self,humanSize,iRatio,p):
-        super().__init__()
-        self.city=City("resources/map.txt")
-        self.p=p
-        self.humans=[]
-        for i in range(0,humanSize):
-            while True:
-                x=random.randint(0,self.city.w-1)
-                y=random.randint(0,self.city.h-1)
-                if self.city.map[y][x]=='0':
-                    break
-            self.humans.append(Human(x,y,self.city))
-        for i in range(0,int(humanSize*iRatio)):
-            self.humans[i].infected=True
-        self.infected=int(humanSize*iRatio)
-        self.uninfected=humanSize-self.infected
-        self.iteration=0
-    def run(self):
-        self.iteration+=1
-        for human in self.humans:
-            human.move()
-        for human in self.humans:
-            for other in self.humans:
-                if human!=other and human.x==other.x and human.y==other.y:
-                    if human.infected and (not other.infected):
-                        if random.random()<self.p:
-                            other.infected=True
-        self.infected=0
-        for human in self.humans:
-            if human.infected:
-                self.infected+=1
-        self.uninfected=len(self.humans)-self.infected
-    def getHumanPosition(self):
-        infectedPos=[]
-        unInfectedPos=[]
-        for i in range(len(self.humans)):
-            if self.humans[i].infected:
-                infectedPos.append((self.humans[i].x*self.city.cell+self.city.cell//2,self.humans[i].y*self.city.cell+self.city.cell//2))
-            else:
-                unInfectedPos.append((self.humans[i].x*self.city.cell+self.city.cell//2,self.humans[i].y*self.city.cell+self.city.cell//2))
-        return {"infected":np.array(infectedPos),"uninfected":np.array(unInfectedPos)}
-
-# sim=Simulation(500,0.1,0.1)
-# for i in range(100):
-#     sim.run()
-#     print("迭代次数：%d,感染人数：%d，健康人数：%d"%(sim.iteration,sim.infected,sim.uninfected))
-```
-
-
-
-#### 2、可视化：
-
-```python 
-from model import City
-from model import Human
-from model import Simulation
-import matplotlib.pyplot as plt
-import matplotlib.animation as ma
-sim=Simulation(2000,0.1,0.2)
-map=plt.imread("resources/map.jpg")
-plt.imshow(map)
-scInfected=plt.scatter([],[],10, color='r')
-scUnInfected=plt.scatter([],[],10,color='g')
-def update(number):
-    sim.run()
-    print("迭代次数：%d,感染人数：%d，健康人数：%d"%(sim.iteration,sim.infected,sim.uninfected))
-    pos=sim.getHumanPosition()
-    scInfected.set_offsets(pos["infected"])
-    scUnInfected.set_offsets(pos["uninfected"])
-
-anim = ma.FuncAnimation(plt.gcf(), update, interval=1)
-plt.show()
-```
-
-
-
-结果如下所示：
-
-红点表示感染人群，绿点表示健康人群。随着时间的推移和人口的流动，红点越来越多，绿点越来越少。
-
-![image-20200510203642456](C:\Users\THINKPAD\AppData\Roaming\Typora\typora-user-images\image-20200510203642456.png)
-
-![](C:\Users\THINKPAD\Desktop\大三下\Figure_1.png)
-
-![](C:\Users\THINKPAD\Desktop\大三下\Figure_2.png)
-
-由上图可知，随着防护措施的薄弱和人口的流动，最终会全部感染。由此可见，在平常生活中戴口罩、消毒等相关防护措施是相当的重要，如果没有这些防护，我们最后都会变成图中的红点
-
-
-
-
-
-
-
-## 二、对疫情谣言进行分析
+## 一、对疫情谣言进行分析
 
 
 
@@ -653,4 +507,163 @@ map.render(r"全国空气质量图.html")
 
 
 
-本次Python疫情分析就到这里结束了，同时，向钟院士致敬，向一线工作者致敬。侠之大者，为国为民。咱们中国人一生的最高追求，为天地立心，为生民立命，为往圣继绝学，为万世开太平。以一人之力系万民康乐，以一身犯险保大业安全。他们真是做到了，武汉加油，中国加油！
+
+
+## 三、模拟疫情病毒传播
+
+
+
+​         2019年12月以来，湖北省武汉市持续开展流感及相关疾病监测，发现多起病毒性肺炎病例，均诊断为病毒性肺炎/肺部感染 ，截至5月9日24时，据31个省（自治区、直辖市）和新疆生产建设兵团报告，现有确诊病例148例（其中重症病例13例），累计治愈出院病例78120例，累计死亡病例4633例，累计报告确诊病例82901例。这些都是多门可怕的数字啊，为什么病毒会传染的如此之快。我们今天用Python来模拟一下新冠状病毒的传播过程（在不做任何防护措施的情况下）
+
+
+
+
+
+#### 1、编写模型
+
+编写一些City()、Human()、Simulation
+
+```python
+import random
+import numpy as np
+class City():
+    def __init__(self,fileName):
+        super().__init__()
+        with open(fileName,"r") as f:
+            self.w=int(f.readline())
+            self.h=int(f.readline())
+            self.cell=int(f.readline())
+            self.map=[ ['0' for col in range(0,self.w)] for row in range(0,self.h)]
+            for row in range(0,self.h):
+                line=f.readline()
+                for col in range(0,self.w):
+                    self.map[row][col]=line[col]
+    def canMove(self,x,y):
+        if x>=0 and x<self.w and y>=0 and y<self.h:
+            return self.map[y][x]=='0';
+        else:
+            return False;
+class Human():
+    def __init__(self,x,y,city,infected=False):
+        super().__init__()
+        self.x=x
+        self.y=y
+        self.city=city
+        self.infected=infected
+    def move(self):
+        r=random.randint(0,3)
+        if r==0:
+            if self.city.canMove(self.x+1,self.y):
+                self.x+=1
+        elif r==1:
+            if self.city.canMove(self.x-1,self.y):
+                self.x-=1
+        elif r==2:
+            if self.city.canMove(self.x,self.y+1):
+                self.y+=1
+        else:
+            if self.city.canMove(self.x,self.y-1):
+                self.y-=1
+class Simulation:
+    def __init__(self,humanSize,iRatio,p):
+        super().__init__()
+        self.city=City("resources/map.txt")
+        self.p=p
+        self.humans=[]
+        for i in range(0,humanSize):
+            while True:
+                x=random.randint(0,self.city.w-1)
+                y=random.randint(0,self.city.h-1)
+                if self.city.map[y][x]=='0':
+                    break
+            self.humans.append(Human(x,y,self.city))
+        for i in range(0,int(humanSize*iRatio)):
+            self.humans[i].infected=True
+        self.infected=int(humanSize*iRatio)
+        self.uninfected=humanSize-self.infected
+        self.iteration=0
+    def run(self):
+        self.iteration+=1
+        for human in self.humans:
+            human.move()
+        for human in self.humans:
+            for other in self.humans:
+                if human!=other and human.x==other.x and human.y==other.y:
+                    if human.infected and (not other.infected):
+                        if random.random()<self.p:
+                            other.infected=True
+        self.infected=0
+        for human in self.humans:
+            if human.infected:
+                self.infected+=1
+        self.uninfected=len(self.humans)-self.infected
+    def getHumanPosition(self):
+        infectedPos=[]
+        unInfectedPos=[]
+        for i in range(len(self.humans)):
+            if self.humans[i].infected:
+                infectedPos.append((self.humans[i].x*self.city.cell+self.city.cell//2,self.humans[i].y*self.city.cell+self.city.cell//2))
+            else:
+                unInfectedPos.append((self.humans[i].x*self.city.cell+self.city.cell//2,self.humans[i].y*self.city.cell+self.city.cell//2))
+        return {"infected":np.array(infectedPos),"uninfected":np.array(unInfectedPos)}
+
+# sim=Simulation(500,0.1,0.1)
+
+# for i in range(100):
+
+#     sim.run()
+
+#     print("迭代次数：%d,感染人数：%d，健康人数：%d"%(sim.iteration,sim.infected,sim.uninfected))
+```
+
+
+
+2、可视化：
+
+
+
+```Python
+from model import City
+from model import Human
+from model import Simulation
+import matplotlib.pyplot as plt
+import matplotlib.animation as ma
+sim=Simulation(2000,0.1,0.2)
+map=plt.imread("resources/map.jpg")
+plt.imshow(map)
+scInfected=plt.scatter([],[],10, color='r')
+scUnInfected=plt.scatter([],[],10,color='g')
+def update(number):
+    sim.run()
+    print("迭代次数：%d,感染人数：%d，健康人数：%d"%(sim.iteration,sim.infected,sim.uninfected))
+    pos=sim.getHumanPosition()
+    scInfected.set_offsets(pos["infected"])
+    scUnInfected.set_offsets(pos["uninfected"])
+
+anim = ma.FuncAnimation(plt.gcf(), update, interval=1)
+plt.show()
+```
+
+结果如下所示：
+
+红点表示感染人群，绿点表示健康人群。随着时间的推移和人口的流动，红点越来越多，绿点越来越少。
+
+![image-20200510203642456](C:\Users\THINKPAD\AppData\Roaming\Typora\typora-user-images\image-20200510203642456.png)
+
+
+
+![image-20200530091739519](C:\Users\THINKPAD\AppData\Roaming\Typora\typora-user-images\image-20200530091739519.png)
+
+
+
+
+
+![image-20200530091758718](C:\Users\THINKPAD\AppData\Roaming\Typora\typora-user-images\image-20200530091758718.png)
+
+
+
+由上图可知，随着防护措施的薄弱和人口的流动，最终会全部感染。由此可见，在平常生活中戴口罩、消毒等相关防护措施是相当的重要，如果没有这些防护，我们最后都会变成图中的红点
+
+
+
+​     本次Python疫情分析就到这里结束了，同时，向钟院士致敬，向一线工作者致敬。侠之大者，为国为民。咱们中国人一生的最高追求，为天地立心，为生民立命，为往圣继绝学，为万世开太平。以一人之力系万民康乐，以一身犯险保大业安全。他们真是做到了，武汉加油，中国加油！
